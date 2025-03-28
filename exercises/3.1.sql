@@ -4,30 +4,18 @@
 -- помощью CONCAT). Также подсчитать среднюю длительность их пребывания (в днях) по всем бронированиям.
 -- Отсортировать результаты по количеству бронирований в порядке убывания.
 
-
-with booking_extra as (
-	select c.id_customer as id_customer, count(*) as booking_count, avg(b.check_out_date - b.check_in_date) AS average_stay_days from customer c
-	join booking b on b.id_customer = c.id_customer 
-	group by c.id_customer
-),
-booking_hotels as (
-	select c.id_customer as id_customer, STRING_AGG(DISTINCT h.name, ', ') AS hotels 
-	from customer c
-	join booking b on b.id_customer = c.id_customer 
-	join room r on r.id_room = b.id_room 
-	join hotel h on h.id_hotel = r.id_hotel 
-	group by c.id_customer 
-)
 select 
 	c."name",
 	c.email,
 	c.phone,
-	b_e.booking_count,
-	b_h.hotels,
-	b_e.average_stay_days
+	count(b.id_booking) as booking_count,
+	count(distinct h.id_hotel) as booking_hotel_count,
+	avg(b.check_out_date - b.check_in_date) AS average_stay_days,
+	STRING_AGG(DISTINCT h.name, ', ') AS hotels 
 from customer c 
-join booking_extra b_e on c.id_customer = b_e.id_customer
-join booking_hotels b_h on b_h.id_customer = c.id_customer
 join booking b on b.id_customer = c.id_customer 
 join room r on r.id_room = b.id_room 
 join hotel h on h.id_hotel = r.id_hotel 
+group by c.id_customer, c."name", c.email, c.phone
+having count(b.id_booking) > 2 and count(distinct h.id_hotel) > 1
+order by booking_count desc
